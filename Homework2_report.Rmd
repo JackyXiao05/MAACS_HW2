@@ -16,6 +16,10 @@ Read in the data with `read_csv()` and store the data as an R object named `data
 ```{r}
 ## Load the data and any necessary packages here.
 
+dataset <- read.csv("maacs.csv.gz")
+names(dataset)
+head(dataset, 10)
+
 ```
 
 ## Part 1
@@ -31,8 +35,10 @@ NOTE: In order to write this function, you will need to translate the statement 
 NOTE: For this part, do not use any plots.
 
 ```{r}
-## Write your function here
-
+corr <- function(dataset) {
+  r <- cor(dataset$age, dataset$fev1, use = "complete.obs")
+  return(r > 0)
+}
 ```
 
 
@@ -43,7 +49,8 @@ Fit a linear regression model with FEV1 as the outcome and age as a predictor.
 How much does FEV1 change for a 1-year increase in the child's age? 
 
 ```{r}
-## Add your code here
+lin_age <- lm(fev1 ~ age, data = dataset)
+summary(lin_age)
 
 ```
 
@@ -63,18 +70,34 @@ NOTE:
 * Do not use the code you write in Part 1 as a supporting premise
 
 ```{r}
-## Add your code here
+#SP 1
+medAge <- median(dataset$age, na.rm = TRUE)
+mnYoung <- mean(dataset$fev1[dataset$age <= medAge], na.rm = TRUE)
+mnOld <- mean(dataset$fev1[dataset$age > medAge], na.rm = TRUE)
+mnYoung; mnOld
+
+#SP 2
+fit_age <- lm(fev1 ~ age, data = dataset)
+coef(fit_age)["age"]
+
+#SP 3
+plot(dataset$age, dataset$fev1,
+     xlab = "Age (years)",
+     ylab = "FEV1 (L)",
+     main = "FEV1 vs. Age",
+     pch = 20, col = "black")
+abline(lm(fev1 ~ age, data = dataset), col = "green", lwd = 2)
 
 ```
 
 
 Write the three supporting premise statements here:
 
-1. 
+1. Children above the average age have a higher mean FEV1 compared to children at or below the average age.
 
-2. 
+2. The regression slope for age is positive, showing that FEV1 increases as age increases.
 
-3. 
+3. The scatterplot of FEV1 against age shows an upward-sloping trend line, indicating a positive relationship.
 
 
 ## Part 4
@@ -90,29 +113,78 @@ For statements involving plots, instead of returning `TRUE` or `FALSE`, you func
 
 ```{r}
 ## Function for supporting premise statement 1
-
+sup1 <- function(dataset) {
+  ok <- complete.cases(dataset$age, dataset$fev1)
+  data <- dataset[ok, c("age", "fev1")]
+  if (nrow(data) < 4) return(FALSE)
+ 
+  avg_age <- median(data$age)
+  YoungMean <- mean(data$fev1[data$age <= avg_age])
+  OldMean <- mean(data$fev1[data$age > avg_age])
+ 
+  OldMean > YoungMean
+ 
+}
 ```
 
 
 ```{r}
 ## Function for supporting premise statement 2
-
+sup2 <- function(dataset) {
+  ok <- complete.cases(dataset$age, dataset$fev1)
+  data <- dataset[ok, c("age", "fev1")]
+  if (nrow(data) < 3) return(FALSE)
+ 
+  fit <- lm(fev1 ~ age, data = data)
+  coef(fit)["age"] > 0
+}
 ```
 
 
 ```{r}
 ## Function for supporting premise statement 3
-
+sup3 <- function(dataset) {
+  ok <- complete.cases(dataset$age, dataset$fev1)
+  data <- dataset[ok, c("age", "fev1")]
+  if (nrow(data) < 3) stop("Not enough complete cases to plot this.")
+ 
+  plot(data$age, data$fev1,
+       xlab = "Age (in Years)",
+       ylab = "FEV1 (L)",
+       pch = 20)
+  abline(lm(fev1 ~ age, data = data), color = "green", lwd = 2)
+ 
+  set.seed(42)
+  age_center <- data$age - mean(data$age)
+  fev1_simu <- 2 + 0.15 * age_center + rnorm(length(age_center), sd = 0.2)
+ 
+  plot(data$age, fev1_simu,
+       xlab = "Age (in Years)",
+       ylab = "FEV1 (L, simulated)",
+       main = "Hypothetical: FEV1 vs Age",
+       pch = 20)
+  abline(lm(fev1_simu ~ data$age), col = "green", lwd = 2)
+ 
+  invisible(NULL)
+}
 ```
 
 Execute each of your function and show that the produce the expected output.
 
-
+```{r, warning = FALSE}
+sup1(dataset)
+sup2(dataset)
+sup3(dataset)
+```
 
 
 ## Part 5
 
 Describe one alternative to the primary statement "FEV1 values in children are higher in older children relative to younger children". 
+
+Another Primary Statement could be:
+
+"FEV1 values aren't associateed to age; the FEV1 values on similar."
 
 Create a fault tree for the alternative outcome describing how the alternative outcome could be realized in the data even if the primary statement were true.
 
